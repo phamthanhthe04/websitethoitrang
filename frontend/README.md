@@ -1,4 +1,3 @@
-
 # Website Thời Trang
 
 Website quản lý và bán sản phẩm thời trang, gồm frontend (React) và backend (Node.js/Express).
@@ -23,6 +22,7 @@ Website quản lý và bán sản phẩm thời trang, gồm frontend (React) v�
 ## Hướng dẫn sử dụng
 
 ### Cài đặt frontend
+
 ```bash
 cd frontend
 npm install
@@ -30,6 +30,7 @@ npm start
 ```
 
 ### Cài đặt backend
+
 ```bash
 cd backend
 npm install
@@ -37,6 +38,7 @@ npm start
 ```
 
 ### Truy cập website
+
 - Frontend: http://localhost:3000
 - Backend API: http://localhost:5000
 

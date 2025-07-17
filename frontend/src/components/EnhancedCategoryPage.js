@@ -331,18 +331,25 @@ const EnhancedCategoryPage = ({ categoryType }) => {
   }, [filters, allProducts]);
 
   const handleFiltersChange = (newFilters) => {
-    setFilters(newFilters);
+    // Đảm bảo categories luôn là mảng
+    const safeFilters = {
+      ...newFilters,
+      categories: Array.isArray(newFilters.categories)
+        ? newFilters.categories
+        : [],
+    };
+    setFilters(safeFilters);
 
     // Update URL params
     const params = new URLSearchParams();
-    if (newFilters.categories.length > 0) {
-      params.set('categories', newFilters.categories.join(','));
+    if (safeFilters.categories.length > 0) {
+      params.set('categories', safeFilters.categories.join(','));
     }
-    if (newFilters.priceRange) {
-      params.set('priceRange', newFilters.priceRange.id);
+    if (safeFilters.priceRange) {
+      params.set('priceRange', safeFilters.priceRange.id);
     }
-    if (newFilters.sort && newFilters.sort !== 'newest') {
-      params.set('sort', newFilters.sort);
+    if (safeFilters.sort && safeFilters.sort !== 'newest') {
+      params.set('sort', safeFilters.sort);
     }
 
     setSearchParams(params);
