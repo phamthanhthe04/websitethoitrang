@@ -18,9 +18,9 @@ const CategoryTreeSelect = ({
       setLoading(true);
       try {
         const response = await adminService.getCategories();
-        if (response && response.data && response.data.data) {
+        if (response && response.data) {
           // Convert flat list to tree structure
-          const categoriesWithLevel = response.data.data.map((cat) => ({
+          const categoriesWithLevel = response.data.map((cat) => ({
             ...cat,
             level: cat.level || 0,
           }));

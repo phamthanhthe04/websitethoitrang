@@ -45,7 +45,7 @@ OrderItem.init(
     sequelize,
     modelName: 'OrderItem',
     tableName: 'order_items',
-    timestamps: true,
+    timestamps: false,
     underscored: true,
   }
 );

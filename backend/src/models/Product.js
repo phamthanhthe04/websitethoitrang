@@ -17,9 +17,13 @@ Product.init(
     description: {
       type: DataTypes.TEXT,
     },
-    category: {
-      type: DataTypes.STRING,
-      allowNull: true, // Make it optional temporarily
+    category_id: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      references: {
+        model: 'categories',
+        key: 'id',
+      },
     },
     price: {
       type: DataTypes.DECIMAL(10, 2),
@@ -38,9 +42,6 @@ Product.init(
     images: {
       type: DataTypes.ARRAY(DataTypes.STRING),
       defaultValue: [],
-    },
-    categoryId: {
-      type: DataTypes.UUID,
     },
     status: {
       type: DataTypes.ENUM('active', 'inactive', 'out_of_stock'),

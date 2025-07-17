@@ -1,23 +1,37 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { adminService } from '../../services/adminService';
 
 const AdminDashboard = () => {
   const [stats, setStats] = useState({
-    totalProducts: 150,
-    totalOrders: 89,
-    totalUsers: 245,
-    totalRevenue: 15750000,
-    recentOrders: [
-      { id: 1, customer: 'Nguyễn Văn An', total: 750000, status: 'completed' },
-      { id: 2, customer: 'Trần Thị Bình', total: 1200000, status: 'pending' },
-      { id: 3, customer: 'Lê Minh Châu', total: 890000, status: 'shipping' },
-    ],
-    lowStockProducts: [
-      { id: 1, name: 'Áo phông trắng', stock: 2 },
-      { id: 2, name: 'Quần jean đen', stock: 1 },
-      { id: 3, name: 'Váy dạ hội', stock: 3 },
-    ],
+    totalProducts: 0,
+    totalOrders: 0,
+    totalUsers: 0,
+    totalRevenue: 0,
+    recentOrders: [],
+    lowStockProducts: [],
   });
+
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchDashboardStats = async () => {
+      try {
+        setLoading(true);
+        const response = await adminService.getDashboardStats();
+        setStats(response.data);
+        setError(null);
+      } catch (err) {
+        console.error('Error fetching dashboard stats:', err);
+        setError('Không thể tải dữ liệu thống kê. Vui lòng thử lại sau.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardStats();
+  }, []);
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('vi-VN', {
@@ -56,89 +70,112 @@ const AdminDashboard = () => {
         <p className='text-gray-600'>
           Chào mừng bạn quay lại! Đây là tổng quan về hệ thống.
         </p>
+
+        {/* Hiển thị lỗi nếu có */}
+        {error && (
+          <div className='mt-4 p-4 bg-red-50 border border-red-200 rounded-lg'>
+            <p className='text-red-600 flex items-center'>
+              <i className='fas fa-exclamation-circle mr-2'></i> {error}
+            </p>
+          </div>
+        )}
       </div>
+
+      {/* Loading indicator */}
+      {loading && (
+        <div className='text-center py-10'>
+          <div className='inline-block animate-spin rounded-full h-8 w-8 border-4 border-gray-200 border-t-blue-600'></div>
+          <p className='mt-2 text-gray-600'>Đang tải dữ liệu...</p>
+        </div>
+      )}
 
       {/* Stats Cards */}
-      <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6'>
-        <div className='bg-white rounded-lg shadow-sm border border-gray-200 p-6'>
-          <div className='flex items-center justify-between'>
-            <div>
-              <p className='text-sm font-medium text-gray-600'>Tổng sản phẩm</p>
-              <p className='text-3xl font-semibold text-gray-900'>
-                {stats.totalProducts}
-              </p>
+      {!loading && (
+        <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6'>
+          <div className='bg-white rounded-lg shadow-sm border border-gray-200 p-6'>
+            <div className='flex items-center justify-between'>
+              <div>
+                <p className='text-sm font-medium text-gray-600'>
+                  Tổng sản phẩm
+                </p>
+                <p className='text-3xl font-semibold text-gray-900'>
+                  {stats.totalProducts || 0}
+                </p>
+              </div>
+              <div className='w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center'>
+                <i className='fas fa-box text-blue-600'></i>
+              </div>
             </div>
-            <div className='w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center'>
-              <i className='fas fa-box text-blue-600'></i>
-            </div>
+            <Link
+              to='/admin/products'
+              className='inline-flex items-center text-sm text-blue-600 hover:text-blue-700 mt-4'
+            >
+              Xem chi tiết <i className='fas fa-arrow-right ml-1'></i>
+            </Link>
           </div>
-          <Link
-            to='/admin/products'
-            className='inline-flex items-center text-sm text-blue-600 hover:text-blue-700 mt-4'
-          >
-            Xem chi tiết <i className='fas fa-arrow-right ml-1'></i>
-          </Link>
-        </div>
 
-        <div className='bg-white rounded-lg shadow-sm border border-gray-200 p-6'>
-          <div className='flex items-center justify-between'>
-            <div>
-              <p className='text-sm font-medium text-gray-600'>Tổng đơn hàng</p>
-              <p className='text-3xl font-semibold text-gray-900'>
-                {stats.totalOrders}
-              </p>
+          <div className='bg-white rounded-lg shadow-sm border border-gray-200 p-6'>
+            <div className='flex items-center justify-between'>
+              <div>
+                <p className='text-sm font-medium text-gray-600'>
+                  Tổng đơn hàng
+                </p>
+                <p className='text-3xl font-semibold text-gray-900'>
+                  {stats.totalOrders || 0}
+                </p>
+              </div>
+              <div className='w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center'>
+                <i className='fas fa-shopping-cart text-green-600'></i>
+              </div>
             </div>
-            <div className='w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center'>
-              <i className='fas fa-shopping-cart text-green-600'></i>
-            </div>
+            <Link
+              to='/admin/orders'
+              className='inline-flex items-center text-sm text-blue-600 hover:text-blue-700 mt-4'
+            >
+              Xem chi tiết <i className='fas fa-arrow-right ml-1'></i>
+            </Link>
           </div>
-          <Link
-            to='/admin/orders'
-            className='inline-flex items-center text-sm text-blue-600 hover:text-blue-700 mt-4'
-          >
-            Xem chi tiết <i className='fas fa-arrow-right ml-1'></i>
-          </Link>
-        </div>
 
-        <div className='bg-white rounded-lg shadow-sm border border-gray-200 p-6'>
-          <div className='flex items-center justify-between'>
-            <div>
-              <p className='text-sm font-medium text-gray-600'>
-                Tổng người dùng
-              </p>
-              <p className='text-3xl font-semibold text-gray-900'>
-                {stats.totalUsers}
-              </p>
+          <div className='bg-white rounded-lg shadow-sm border border-gray-200 p-6'>
+            <div className='flex items-center justify-between'>
+              <div>
+                <p className='text-sm font-medium text-gray-600'>
+                  Tổng người dùng
+                </p>
+                <p className='text-3xl font-semibold text-gray-900'>
+                  {stats.totalUsers || 0}
+                </p>
+              </div>
+              <div className='w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center'>
+                <i className='fas fa-users text-purple-600'></i>
+              </div>
             </div>
-            <div className='w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center'>
-              <i className='fas fa-users text-purple-600'></i>
-            </div>
+            <Link
+              to='/admin/users'
+              className='inline-flex items-center text-sm text-blue-600 hover:text-blue-700 mt-4'
+            >
+              Xem chi tiết <i className='fas fa-arrow-right ml-1'></i>
+            </Link>
           </div>
-          <Link
-            to='/admin/users'
-            className='inline-flex items-center text-sm text-blue-600 hover:text-blue-700 mt-4'
-          >
-            Xem chi tiết <i className='fas fa-arrow-right ml-1'></i>
-          </Link>
-        </div>
 
-        <div className='bg-white rounded-lg shadow-sm border border-gray-200 p-6'>
-          <div className='flex items-center justify-between'>
-            <div>
-              <p className='text-sm font-medium text-gray-600'>
-                Tổng doanh thu
-              </p>
-              <p className='text-3xl font-semibold text-gray-900'>
-                {formatCurrency(stats.totalRevenue)}
-              </p>
+          <div className='bg-white rounded-lg shadow-sm border border-gray-200 p-6'>
+            <div className='flex items-center justify-between'>
+              <div>
+                <p className='text-sm font-medium text-gray-600'>
+                  Tổng doanh thu
+                </p>
+                <p className='text-3xl font-semibold text-gray-900'>
+                  {formatCurrency(stats.totalRevenue || 0)}
+                </p>
+              </div>
+              <div className='w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center'>
+                <i className='fas fa-dollar-sign text-yellow-600'></i>
+              </div>
             </div>
-            <div className='w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center'>
-              <i className='fas fa-dollar-sign text-yellow-600'></i>
-            </div>
+            <p className='text-sm text-gray-500 mt-4'>Tháng này</p>
           </div>
-          <p className='text-sm text-gray-500 mt-4'>Tháng này</p>
         </div>
-      </div>
+      )}
 
       {/* Quick Actions */}
       <div className='bg-white rounded-lg shadow-sm border border-gray-200 p-6'>
@@ -197,29 +234,40 @@ const AdminDashboard = () => {
             Đơn hàng gần đây
           </h2>
           <div className='space-y-4'>
-            {stats.recentOrders.map((order) => (
-              <div
-                key={order.id}
-                className='flex items-center justify-between p-4 border border-gray-100 rounded-lg'
-              >
-                <div>
-                  <h4 className='font-medium text-gray-900'>#{order.id}</h4>
-                  <p className='text-sm text-gray-600'>{order.customer}</p>
+            {stats.recentOrders && stats.recentOrders.length > 0 ? (
+              stats.recentOrders.map((order) => (
+                <div
+                  key={order.id}
+                  className='flex items-center justify-between p-4 border border-gray-100 rounded-lg'
+                >
+                  <div>
+                    <h4 className='font-medium text-gray-900'>#{order.id}</h4>
+                    <p className='text-sm text-gray-600'>{order.customer}</p>
+                    {order.created_at && (
+                      <p className='text-xs text-gray-500'>
+                        {new Date(order.created_at).toLocaleDateString('vi-VN')}
+                      </p>
+                    )}
+                  </div>
+                  <div className='text-right'>
+                    <p className='font-semibold text-gray-900'>
+                      {formatCurrency(order.total)}
+                    </p>
+                    <span
+                      className={`inline-block px-2 py-1 text-xs rounded-full ${getStatusColor(
+                        order.status
+                      )}`}
+                    >
+                      {getStatusText(order.status)}
+                    </span>
+                  </div>
                 </div>
-                <div className='text-right'>
-                  <p className='font-semibold text-gray-900'>
-                    {formatCurrency(order.total)}
-                  </p>
-                  <span
-                    className={`inline-block px-2 py-1 text-xs rounded-full ${getStatusColor(
-                      order.status
-                    )}`}
-                  >
-                    {getStatusText(order.status)}
-                  </span>
-                </div>
+              ))
+            ) : (
+              <div className='text-center py-6 text-gray-500'>
+                Không có đơn hàng gần đây
               </div>
-            ))}
+            )}
           </div>
           <Link
             to='/admin/orders'
@@ -235,25 +283,42 @@ const AdminDashboard = () => {
             Cảnh báo tồn kho thấp
           </h2>
           <div className='space-y-4'>
-            {stats.lowStockProducts.map((product) => (
-              <div
-                key={product.id}
-                className='flex items-center justify-between p-4 border border-gray-100 rounded-lg'
-              >
-                <div>
-                  <h4 className='font-medium text-gray-900'>{product.name}</h4>
-                  <p className='text-sm text-red-600'>
-                    Còn lại: {product.stock} sản phẩm
-                  </p>
-                </div>
-                <Link
-                  to={`/admin/products/${product.id}`}
-                  className='px-3 py-1 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors'
+            {stats.lowStockProducts && stats.lowStockProducts.length > 0 ? (
+              stats.lowStockProducts.map((product) => (
+                <div
+                  key={product.id}
+                  className='flex items-center justify-between p-4 border border-gray-100 rounded-lg'
                 >
-                  Cập nhật
-                </Link>
+                  <div>
+                    <h4 className='font-medium text-gray-900'>
+                      {product.name}
+                    </h4>
+                    <p
+                      className={`text-sm ${
+                        product.stock <= 0
+                          ? 'text-red-600 font-semibold'
+                          : 'text-orange-500'
+                      }`}
+                    >
+                      Còn lại: {product.stock} sản phẩm
+                    </p>
+                  </div>
+                  <Link
+                    to={`/admin/products`}
+                    onClick={() =>
+                      localStorage.setItem('editProductId', product.id)
+                    }
+                    className='px-3 py-1 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors'
+                  >
+                    Cập nhật
+                  </Link>
+                </div>
+              ))
+            ) : (
+              <div className='text-center py-6 text-gray-500'>
+                Không có sản phẩm nào sắp hết hàng
               </div>
-            ))}
+            )}
           </div>
           <Link
             to='/admin/products'

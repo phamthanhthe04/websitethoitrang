@@ -20,9 +20,9 @@ const CategoryFilterSelect = ({
       setLoading(true);
       try {
         const response = await adminService.getCategories();
-        if (response && response.data && response.data.data) {
+        if (response && response.data) {
           // Convert flat list to tree structure
-          const categoriesWithLevel = response.data.data.map((cat) => ({
+          const categoriesWithLevel = response.data.map((cat) => ({
             ...cat,
             level: cat.level || 0,
           }));
@@ -82,13 +82,13 @@ const CategoryFilterSelect = ({
   };
 
   const handleSelect = (category) => {
-    onChange(category.id === 'all' ? 'all' : category.name);
+    onChange(category.id);
     setIsOpen(false);
   };
 
   const findCategoryByValue = (categories, searchValue) => {
     for (const category of categories) {
-      if (category.id === searchValue || category.name === searchValue) {
+      if (category.id === searchValue) {
         return category;
       }
       if (category.children) {

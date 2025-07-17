@@ -18,7 +18,7 @@ const AdminProductManagement = () => {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    category: '',
+    category_id: '',
     price: '',
     sale_price: '',
     stock: '',
@@ -115,7 +115,7 @@ const AdminProductManagement = () => {
     setFormData({
       name: '',
       description: '',
-      category: '',
+      category_id: '',
       price: '',
       sale_price: '',
       stock: '',
@@ -186,11 +186,12 @@ const AdminProductManagement = () => {
         ...(additionalImages.length > 0 && { additionalImages }),
       };
 
-      // Add flags to indicate which old images to keep
-      if (keepOldImages.mainImage && !mainImage) {
+      // Always explicitly set keepOldMainImage flag if we want to keep old main image
+      if (keepOldImages.mainImage) {
         productData.keepOldMainImage = true;
       }
 
+      // Add flags to indicate which old additional images to keep
       if (keepOldImages.additionalImages.some((keep) => keep)) {
         productData.keepOldAdditionalImages = keepOldImages.additionalImages;
       }
@@ -242,14 +243,23 @@ const AdminProductManagement = () => {
   };
 
   const handleToggleOldMainImage = () => {
+    // Get the new state value
+    const newValue = !keepOldImages.mainImage;
+
     setKeepOldImages((prev) => ({
       ...prev,
-      mainImage: !prev.mainImage,
+      mainImage: newValue,
     }));
 
-    // If keeping old image, clear new image
-    if (!keepOldImages.mainImage) {
+    // If we're switching to keep the old image, clear any new image selection
+    if (newValue) {
       setMainImage(null);
+      // Reset preview to the original product image
+      if (editingProduct && editingProduct.image_url) {
+        setMainImagePreview(editingProduct.image_url);
+      }
+    } else {
+      // If we're not keeping the old image, clear the preview
       setMainImagePreview(null);
     }
   };
@@ -287,7 +297,9 @@ const AdminProductManagement = () => {
       .toLowerCase()
       .includes(searchTerm.toLowerCase());
     const matchesCategory =
-      selectedCategory === 'all' || product.category === selectedCategory;
+      selectedCategory === 'all' ||
+      product.category_id === selectedCategory ||
+      product.Category?.id === selectedCategory;
     return matchesSearch && matchesCategory;
   });
 
@@ -304,7 +316,7 @@ const AdminProductManagement = () => {
     setFormData({
       name: product.name || '',
       description: product.description || '',
-      category: product.category || '',
+      category_id: product.category_id || '',
       price: product.price || '',
       sale_price: product.sale_price || '',
       stock: product.stock || '',
@@ -446,6 +458,9 @@ const AdminProductManagement = () => {
                 <th className='px-3 md:px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-2/5'>
                   Sản phẩm
                 </th>
+                <th className='px-3 md:px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell w-24'>
+                  Ảnh phụ
+                </th>
                 <th className='px-3 md:px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell'>
                   Danh mục
                 </th>
@@ -480,7 +495,7 @@ const AdminProductManagement = () => {
                         >
                           {product.image_url ? (
                             <img
-                              src={`http://localhost:5000${product.imageUrl}`}
+                              src={getImageUrl(product.image_url)}
                               alt={product.name}
                               className='w-12 h-12 md:w-16 md:h-16 rounded-lg object-cover hover:opacity-80 transition-opacity'
                             />
@@ -511,7 +526,7 @@ const AdminProductManagement = () => {
                           {/* Mobile-only info */}
                           <div className='md:hidden space-y-1'>
                             <div className='text-xs text-gray-600'>
-                              {product.category}
+                              {product.Category?.name || 'Chưa phân loại'}
                             </div>
                             <div className='flex items-center space-x-2'>
                               <span className={`text-xs ${stockStatus.color}`}>
@@ -531,9 +546,9 @@ const AdminProductManagement = () => {
                             </div>
                           </div>
 
-                          {/* Additional Images - Desktop only */}
+                          {/* Additional Images - Mobile only */}
                           {product.images && product.images.length > 0 && (
-                            <div className='hidden md:flex items-center space-x-1 mt-2'>
+                            <div className='md:hidden flex items-center space-x-1 mt-2'>
                               <span className='text-xs text-gray-400 mr-1'>
                                 Ảnh phụ:
                               </span>
@@ -546,7 +561,7 @@ const AdminProductManagement = () => {
                                       className='w-6 h-6 bg-gray-100 rounded border'
                                     >
                                       <img
-                                        src={imageUrl}
+                                        src={getImageUrl(imageUrl)}
                                         alt={`${product.name} - ảnh ${
                                           index + 1
                                         }`}
@@ -572,9 +587,63 @@ const AdminProductManagement = () => {
                         </div>
                       </div>
                     </td>
+                    {/* Additional Images Column - Desktop only */}
+                    <td className='px-3 md:px-4 py-4 text-center hidden md:table-cell'>
+                      {product.images && product.images.length > 0 ? (
+                        <div className='space-y-2'>
+                          <div className='flex items-center justify-center space-x-1'>
+                            {product.images
+                              .slice(0, 3)
+                              .map((imageUrl, index) => (
+                                <div
+                                  key={index}
+                                  className='w-8 h-8 bg-gray-100 rounded border relative group cursor-pointer'
+                                  onClick={() => handleViewImages(product)}
+                                >
+                                  <img
+                                    src={getImageUrl(imageUrl)}
+                                    alt={`${product.name} - ảnh phụ ${
+                                      index + 1
+                                    }`}
+                                    className='w-8 h-8 rounded object-cover hover:opacity-80 transition-opacity'
+                                    onError={(e) => {
+                                      e.target.style.display = 'none';
+                                      e.target.parentElement.innerHTML =
+                                        '<i class="fas fa-image text-gray-300 text-xs flex items-center justify-center w-8 h-8"></i>';
+                                    }}
+                                  />
+                                  <div className='absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-10 rounded transition-all duration-200'></div>
+                                </div>
+                              ))}
+                            {product.images.length > 3 && (
+                              <div
+                                className='w-8 h-8 bg-gray-100 rounded border flex items-center justify-center cursor-pointer'
+                                onClick={() => handleViewImages(product)}
+                              >
+                                <span className='text-xs text-gray-500'>
+                                  +{product.images.length - 3}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                          {product.images.length > 1 && (
+                            <button
+                              onClick={() => handleViewImages(product)}
+                              className='inline-flex items-center justify-center text-xs text-blue-600 hover:text-blue-800'
+                              title='Xem tất cả ảnh'
+                            >
+                              <i className='fas fa-eye mr-1'></i>
+                              <span>Xem tất cả</span>
+                            </button>
+                          )}
+                        </div>
+                      ) : (
+                        <div className='text-xs text-gray-400'>Không có</div>
+                      )}
+                    </td>
                     <td className='px-3 md:px-4 py-4 text-sm text-gray-900 hidden md:table-cell'>
                       <span className='inline-flex px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800 rounded-full'>
-                        {product.category}
+                        {product.Category?.name || 'Chưa phân loại'}
                       </span>
                     </td>
                     <td className='px-3 md:px-4 py-4 text-sm text-gray-900'>
@@ -724,11 +793,11 @@ const AdminProductManagement = () => {
                           Danh mục <span className='text-red-500'>*</span>
                         </label>
                         <CategoryTreeSelect
-                          value={formData.category}
+                          value={formData.category_id}
                           onChange={(category) => {
                             setFormData((prev) => ({
                               ...prev,
-                              category: category.name,
+                              category_id: category.id,
                             }));
                           }}
                           placeholder='Chọn danh mục sản phẩm'
@@ -1060,11 +1129,11 @@ const AdminProductManagement = () => {
                             Danh mục *
                           </label>
                           <CategoryTreeSelect
-                            value={formData.category}
+                            value={formData.category_id}
                             onChange={(category) => {
                               setFormData((prev) => ({
                                 ...prev,
-                                category: category.name,
+                                category_id: category.id,
                               }));
                             }}
                             placeholder='Chọn danh mục sản phẩm'
@@ -1385,7 +1454,7 @@ const AdminProductManagement = () => {
           <div className='flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center'>
             <div className='fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity'></div>
 
-            <div className='inline-block bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full'>
+            <div className='inline-block bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-5xl sm:w-full'>
               <div className='bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4'>
                 <div className='flex items-center justify-between mb-4'>
                   <h3 className='text-lg font-medium text-gray-900'>
@@ -1399,78 +1468,82 @@ const AdminProductManagement = () => {
                   </button>
                 </div>
 
-                <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
-                  {/* Main Image */}
-                  <div className='space-y-2'>
-                    <h4 className='text-sm font-medium text-gray-700 flex items-center'>
-                      <i className='fas fa-star text-blue-500 mr-2'></i>
-                      Ảnh chính
-                    </h4>
-                    <div className='aspect-w-1 aspect-h-1 bg-gray-100 rounded-lg overflow-hidden'>
-                      {selectedProduct.image_url ? (
-                        <img
-                          src={selectedProduct.image_url}
-                          alt={selectedProduct.name}
-                          className='w-full h-64 object-cover rounded-lg'
-                        />
-                      ) : (
-                        <div className='w-full h-64 bg-gray-200 flex items-center justify-center rounded-lg'>
-                          <i className='fas fa-image text-gray-400 text-4xl'></i>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Additional Images */}
-                  <div className='space-y-2'>
-                    <h4 className='text-sm font-medium text-gray-700 flex items-center'>
-                      <i className='fas fa-images text-green-500 mr-2'></i>
-                      Ảnh phụ (
-                      {selectedProduct.images
-                        ? selectedProduct.images.length
-                        : 0}
-                      )
-                    </h4>
-                    {selectedProduct.images &&
-                    selectedProduct.images.length > 0 ? (
-                      <div className='grid grid-cols-2 gap-2 max-h-64 overflow-y-auto'>
-                        {selectedProduct.images.map((imageUrl, index) => (
-                          <div
-                            key={index}
-                            className='aspect-w-1 aspect-h-1 bg-gray-100 rounded-lg overflow-hidden'
-                          >
-                            <img
-                              src={imageUrl}
-                              alt={`${selectedProduct.name} - ảnh ${index + 1}`}
-                              className='w-full h-24 object-cover rounded-lg'
-                              onError={(e) => {
-                                e.target.src =
-                                  'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTkgMTJMMTEgMTQuNUwxNSA9LjVNNyAzSDEyQzEzLjA2MDkgMyAxNCAzLjkzOTEzIDE0IDVWMTlDMTQgMjAuMDYwOSAxMy4wNjA5IDIxIDEyIDIxSDdDNS45MzkxMyAyMSA1IDIwLjA6MDkgNSAxOVY1QzUgMy45MzkxMyA1LjkzOTEzIDMgNyAzWiIgc3Ryb2tlPSIjOTI5MjkyIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgo8L3N2Zz4K';
-                              }}
-                            />
-                          </div>
-                        ))}
-                      </div>
+                {/* Main Image Section */}
+                <div className='mb-6'>
+                  <h4 className='text-sm font-medium text-gray-700 flex items-center mb-2'>
+                    <i className='fas fa-star text-blue-500 mr-2'></i>
+                    Ảnh chính
+                  </h4>
+                  <div className='flex justify-center bg-gray-100 rounded-lg overflow-hidden'>
+                    {selectedProduct.image_url ? (
+                      <img
+                        src={getImageUrl(selectedProduct.image_url)}
+                        alt={selectedProduct.name}
+                        className='h-72 object-contain rounded-lg'
+                        onError={(e) => {
+                          e.target.src =
+                            'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1zbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMyA2QzMgNC4zNDMxNSA0LjM0MzE1IDMgNiAzSDEySDFhQzE5LjY1NjkgMyAyMSA0LjM0MzE1IDIxIDZWMTRWMThDMjEgMTkuNjU2OSAxOS42NTY5IDIxIDE4IDIxSDEySDZDNC4zNDMxNSAyMSAzIDE5LjY1NjkgMyAxOFYxNFY2WiIgc3Ryb2tlPSIjOUU5RTlFIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjxwYXRoIGQ9Ik0zIDdMMTAuNSAxNEwyMSA3IiBzdHJva2U9IiM5RTlFOUUiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+PC9zdmc+';
+                        }}
+                      />
                     ) : (
-                      <div className='h-24 bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center'>
-                        <div className='text-center'>
-                          <i className='fas fa-images text-gray-400 text-2xl mb-2'></i>
-                          <p className='text-sm text-gray-500'>
-                            Chưa có ảnh phụ
-                          </p>
-                        </div>
+                      <div className='w-full h-72 bg-gray-200 flex items-center justify-center rounded-lg'>
+                        <i className='fas fa-image text-gray-400 text-4xl'></i>
                       </div>
                     )}
                   </div>
                 </div>
 
+                {/* Additional Images Section */}
+                <div>
+                  <h4 className='text-sm font-medium text-gray-700 flex items-center mb-2'>
+                    <i className='fas fa-images text-green-500 mr-2'></i>
+                    Ảnh phụ (
+                    {selectedProduct.images ? selectedProduct.images.length : 0}
+                    )
+                  </h4>
+
+                  {selectedProduct.images &&
+                  selectedProduct.images.length > 0 ? (
+                    <div className='grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3'>
+                      {selectedProduct.images.map((imageUrl, index) => (
+                        <div
+                          key={index}
+                          className='relative group bg-gray-100 rounded-lg p-1 border border-gray-200'
+                        >
+                          <div className='aspect-w-1 aspect-h-1'>
+                            <img
+                              src={getImageUrl(imageUrl)}
+                              alt={`${selectedProduct.name} - ảnh ${index + 1}`}
+                              className='w-full h-32 object-contain rounded'
+                              onError={(e) => {
+                                e.target.src =
+                                  'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1zbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMyA2QzMgNC4zNDMxNSA0LjM0MzE1IDMgNiAzSDEySDFhQzE5LjY1NjkgMyAyMSA0LjM0MzE1IDIxIDZWMTRWMThDMjEgMTkuNjU2OSAxOS42NTY5IDIxIDE4IDIxSDEySDZDNC4zNDMxNSAyMSAzIDE5LjY1NjkgMyAxOFYxNFY2WiIgc3Ryb2tlPSIjOUU5RTlFIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjxwYXRoIGQ9Ik0zIDdMMTAuNSAxNEwyMSA3IiBzdHJva2U9IiM5RTlFOUUiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+PC9zdmc+';
+                              }}
+                            />
+                          </div>
+                          <div className='absolute bottom-1 left-1 bg-black bg-opacity-50 text-white text-xs px-1.5 py-0.5 rounded'>
+                            {index + 1}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className='h-24 bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center'>
+                      <div className='text-center'>
+                        <i className='fas fa-images text-gray-400 text-2xl mb-2'></i>
+                        <p className='text-sm text-gray-500'>Chưa có ảnh phụ</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 {/* Product Summary */}
                 <div className='mt-6 pt-4 border-t border-gray-200'>
-                  <div className='grid grid-cols-2 gap-4 text-sm'>
+                  <div className='grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm'>
                     <div>
                       <span className='text-gray-500'>Danh mục:</span>
                       <span className='ml-2 text-gray-900'>
-                        {selectedProduct.category}
+                        {selectedProduct.Category?.name || 'Chưa phân loại'}
                       </span>
                     </div>
                     <div>

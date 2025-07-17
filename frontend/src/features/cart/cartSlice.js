@@ -123,6 +123,35 @@ const cartSlice = createSlice({
       saveCartToStorage(state);
     },
 
+    // Recalculate cart prices based on new pricing logic
+    recalculateCartPrices: (state, action) => {
+      const updatedProducts = action.payload; // Array of products with correct prices
+
+      state.items = state.items.map((item) => {
+        const product = updatedProducts.find((p) => p.id === item.id);
+        if (product) {
+          const correctPrice =
+            product.sale_price && product.sale_price > 0
+              ? product.price - product.sale_price
+              : product.price;
+          return {
+            ...item,
+            price: correctPrice,
+          };
+        }
+        return item;
+      });
+
+      // Cập nhật totals với giá mới
+      state.totalAmount = state.items.reduce(
+        (total, item) => total + item.price * item.quantity,
+        0
+      );
+
+      // Lưu vào localStorage
+      saveCartToStorage(state);
+    },
+
     clearCart: (state) => {
       state.items = [];
       state.totalQuantity = 0;
@@ -134,8 +163,13 @@ const cartSlice = createSlice({
   },
 });
 
-export const { addToCart, removeFromCart, updateQuantity, clearCart } =
-  cartSlice.actions;
+export const {
+  addToCart,
+  removeFromCart,
+  updateQuantity,
+  clearCart,
+  recalculateCartPrices,
+} = cartSlice.actions;
 
 // Selectors
 export const selectCartItems = (state) => state.cart?.items || [];

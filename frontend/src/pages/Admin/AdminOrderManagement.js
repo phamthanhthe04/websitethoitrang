@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import adminService from '../../services/adminService';
+import { adminService } from '../../services/adminService';
 
 const AdminOrderManagement = () => {
   const [orders, setOrders] = useState([]);
@@ -21,6 +21,7 @@ const AdminOrderManagement = () => {
         setOrders(ordersData);
         setLoading(false);
         console.log(`👥 [ORDERS] Found ${ordersData.length} orders`);
+        console.log(response);
       } catch (error) {
         console.error('Error fetching orders:', error);
         setLoading(false);
@@ -37,7 +38,10 @@ const AdminOrderManagement = () => {
   };
 
   const formatDateTime = (dateString) => {
-    return new Date(dateString).toLocaleString('vi-VN');
+    if (!dateString) return 'N/A';
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return 'Invalid Date';
+    return date.toLocaleString('vi-VN');
   };
 
   const getStatusColor = (status) => {
@@ -97,7 +101,7 @@ const AdminOrderManagement = () => {
           .includes(searchTerm.toLowerCase()) ||
         order.id?.toString().includes(searchTerm)) ??
       false;
-    const orderStatus = order.status || order.order_status;
+    const orderStatus = order.order_status;
     const matchesStatus =
       statusFilter === 'all' || orderStatus === statusFilter;
     return matchesSearch && matchesStatus;
@@ -105,19 +109,11 @@ const AdminOrderManagement = () => {
 
   const statusCounts = {
     all: orders.length,
-    pending: orders.filter((o) => (o.status || o.order_status) === 'pending')
-      .length,
-    confirmed: orders.filter(
-      (o) => (o.status || o.order_status) === 'confirmed'
-    ).length,
-    shipped: orders.filter((o) => (o.status || o.order_status) === 'shipped')
-      .length,
-    delivered: orders.filter(
-      (o) => (o.status || o.order_status) === 'delivered'
-    ).length,
-    cancelled: orders.filter(
-      (o) => (o.status || o.order_status) === 'cancelled'
-    ).length,
+    pending: orders.filter((o) => o.order_status === 'pending').length,
+    confirmed: orders.filter((o) => o.order_status === 'confirmed').length,
+    shipped: orders.filter((o) => o.order_status === 'shipped').length,
+    delivered: orders.filter((o) => o.order_status === 'delivered').length,
+    cancelled: orders.filter((o) => o.order_status === 'cancelled').length,
   };
 
   const updateOrderStatus = async () => {
@@ -132,7 +128,6 @@ const AdminOrderManagement = () => {
         if (order.id === selectedOrder.id) {
           return {
             ...order,
-            status: selectedStatus,
             order_status: selectedStatus,
           };
         }
@@ -142,7 +137,6 @@ const AdminOrderManagement = () => {
       setOrders(updatedOrders);
       setSelectedOrder({
         ...selectedOrder,
-        status: selectedStatus,
         order_status: selectedStatus,
       });
       setShowStatusModal(false);
@@ -159,7 +153,7 @@ const AdminOrderManagement = () => {
 
   const handleOpenStatusModal = (order) => {
     setSelectedOrder(order);
-    setSelectedStatus(order.status || order.order_status);
+    setSelectedStatus(order.order_status);
     setShowStatusModal(true);
   };
 

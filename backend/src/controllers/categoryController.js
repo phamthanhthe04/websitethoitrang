@@ -1,4 +1,5 @@
 const { Category, Product } = require('../models');
+const sequelize = require('../config/database');
 
 // Get all categories
 const getAllCategories = async (req, res) => {
@@ -58,6 +59,23 @@ const getCategory = async (req, res) => {
 // Create new category
 const createCategory = async (req, res) => {
   try {
+    const { name, parent_id } = req.body;
+
+    // Check if a category with the same name exists under the same parent
+    const existingCategory = await Category.findOne({
+      where: {
+        name,
+        parent_id: parent_id || null, // Handle both null and undefined
+      },
+    });
+
+    if (existingCategory) {
+      return res.status(400).json({
+        success: false,
+        error: 'Đã tồn tại danh mục với tên này trong cùng danh mục cha',
+      });
+    }
+
     const category = await Category.create(req.body);
 
     res.status(201).json({
@@ -82,6 +100,31 @@ const updateCategory = async (req, res) => {
         success: false,
         error: 'Không tìm thấy danh mục',
       });
+    }
+
+    // If changing name or parent, check for duplicates
+    if (
+      (req.body.name && req.body.name !== category.name) ||
+      (req.body.parent_id !== undefined &&
+        req.body.parent_id !== category.parent_id)
+    ) {
+      const existingCategory = await Category.findOne({
+        where: {
+          name: req.body.name || category.name,
+          parent_id:
+            req.body.parent_id !== undefined
+              ? req.body.parent_id
+              : category.parent_id,
+          id: { [sequelize.Op.ne]: category.id }, // Exclude current category
+        },
+      });
+
+      if (existingCategory) {
+        return res.status(400).json({
+          success: false,
+          error: 'Đã tồn tại danh mục với tên này trong cùng danh mục cha',
+        });
+      }
     }
 
     await category.update(req.body);

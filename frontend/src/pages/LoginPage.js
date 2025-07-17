@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import authService from '../services/authService';
 import { saveAuthData } from '../utils/auth'; // Lưu token & user vào localStorage
 import { useDispatch } from 'react-redux';
@@ -7,6 +7,7 @@ import { setAuthData } from '../features/auth/authSlice';
 
 const LoginPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const dispatch = useDispatch();
 
   const [formData, setFormData] = useState({
@@ -38,8 +39,9 @@ const LoginPage = () => {
       // Cập nhật Redux
       dispatch(setAuthData({ token, user }));
 
-      // Điều hướng về trang chủ
-      navigate('/');
+      // Điều hướng về trang trước đó hoặc trang chủ
+      const from = location.state?.from?.pathname || '/';
+      navigate(from, { replace: true });
     } catch (err) {
       setError(err || 'Đăng nhập thất bại');
     } finally {

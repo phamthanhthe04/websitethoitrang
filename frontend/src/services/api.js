@@ -6,36 +6,37 @@ const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
-// Add request interceptor for debugging
+// Add request interceptor
 api.interceptors.request.use(
   (config) => {
-    console.log('🌐 [API REQUEST]', config.method?.toUpperCase(), config.url);
-    console.log('🌐 [API REQUEST] Headers:', config.headers);
-    if (config.data) {
-      console.log('🌐 [API REQUEST] Data:', config.data);
+    // Add auth token if available
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
     }
+    console.log(`🔄 [API] ${config.method?.toUpperCase()} ${config.url}`);
     return config;
   },
   (error) => {
-    console.error('❌ [API REQUEST ERROR]', error);
+    console.error('❌ [API] Request error:', error);
     return Promise.reject(error);
   }
 );
 
-// Add response interceptor for debugging
+// Add response interceptor
 api.interceptors.response.use(
   (response) => {
-    console.log('✅ [API RESPONSE]', response.status, response.config.url);
-    console.log('✅ [API RESPONSE] Data:', response.data);
+    console.log(
+      `✅ [API] ${response.config.method?.toUpperCase()} ${response.config.url}`
+    );
+    console.log('📊 [API] Response:', response.data);
     return response;
   },
   (error) => {
     console.error(
-      '❌ [API RESPONSE ERROR]',
-      error.response?.status,
-      error.config?.url
+      `❌ [API] ${error.config?.method?.toUpperCase()} ${error.config?.url}`
     );
-    console.error('❌ [API RESPONSE ERROR] Data:', error.response?.data);
+    console.error('❌ [API] Error:', error.response?.data || error.message);
     return Promise.reject(error);
   }
 );

@@ -16,10 +16,11 @@ export const orderService = {
   // Lấy danh sách đơn hàng của user
   getUserOrders: async () => {
     try {
-      const response = await api.get('/orders/user');
+      const response = await api.get('/orders/my-orders');
+      console.log('📦 [ORDERS] User orders response:', response);
       return response.data;
     } catch (error) {
-      console.error('Get user orders error:', error);
+      console.error('❌ [ORDERS] Get user orders error:', error);
       throw error;
     }
   },

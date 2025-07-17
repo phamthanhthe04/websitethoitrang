@@ -27,6 +27,31 @@ adminApi.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
+// Add response interceptor for debugging
+adminApi.interceptors.response.use(
+  (response) => {
+    console.log(
+      `✅ [ADMIN API] ${response.config.method?.toUpperCase()} ${
+        response.config.url
+      }`
+    );
+    console.log('📊 [ADMIN API] Response:', response.data);
+    return response;
+  },
+  (error) => {
+    console.error(
+      `❌ [ADMIN API] ${error.config?.method?.toUpperCase()} ${
+        error.config?.url
+      }`
+    );
+    console.error(
+      '❌ [ADMIN API] Error:',
+      error.response?.data || error.message
+    );
+    return Promise.reject(error);
+  }
+);
+
 export const adminService = {
   // Dashboard
   getDashboardStats: () => adminApi.get('/dashboard-stats'),
@@ -92,6 +117,7 @@ export const adminService = {
         key !== 'mainImage' &&
         key !== 'additionalImages' &&
         key !== 'keepOldAdditionalImages' &&
+        key !== 'keepOldMainImage' &&
         productData[key] !== null &&
         productData[key] !== ''
       ) {
@@ -102,6 +128,11 @@ export const adminService = {
     // Add main image if updated
     if (productData.mainImage) {
       formData.append('mainImage', productData.mainImage);
+    }
+
+    // Add flag to keep old main image
+    if (productData.keepOldMainImage) {
+      formData.append('keepOldMainImage', 'true');
     }
 
     // Add additional images if updated
@@ -174,31 +205,13 @@ export const adminService = {
 
   deleteOrder: (id) => adminApi.delete(`/orders/${id}`),
 
-  // Categories - using the correct endpoint
-  getCategories: () => api.get('/categories'),
+  // Categories
+  getCategories: () => adminApi.get('/categories'),
 
-  createCategory: (categoryData) =>
-    api.post('/categories', categoryData, {
-      headers: {
-        Authorization: `Bearer ${getAuthToken()}`,
-        'Content-Type': 'application/json',
-      },
-    }),
+  createCategory: (categoryData) => adminApi.post('/categories', categoryData),
 
   updateCategory: (id, categoryData) =>
-    api.put(`/categories/${id}`, categoryData, {
-      headers: {
-        Authorization: `Bearer ${getAuthToken()}`,
-        'Content-Type': 'application/json',
-      },
-    }),
+    adminApi.put(`/categories/${id}`, categoryData),
 
-  deleteCategory: (id) =>
-    api.delete(`/categories/${id}`, {
-      headers: {
-        Authorization: `Bearer ${getAuthToken()}`,
-      },
-    }),
+  deleteCategory: (id) => adminApi.delete(`/categories/${id}`),
 };
-
-export default adminService;

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import adminService from '../../services/adminService';
+import { adminService } from '../../services/adminService';
 import { toast } from 'react-toastify';
 
 const AdminCategoryManagement = () => {
@@ -16,69 +16,63 @@ const AdminCategoryManagement = () => {
     level: 1,
   });
 
-  // Hàm tính toán level của danh mục dựa trên parent_id hoặc parentId
+  // Hàm tính toán level của danh mục dựa trên parent_id
   const calculateCategoryLevel = useCallback((category, allCategories) => {
-    // Kiểm tra cả parentId và parent_id để đảm bảo tính tương thích
-    if (!category.parent_id && !category.parentId) return 1; // Nếu không có parent_id/parentId, đây là danh mục cấp 1
+    // Nếu không có parent_id, đây là danh mục cấp 1
+    if (!category.parent_id) return 1;
 
     let level = 1;
-    // Sử dụng parentId nếu có, nếu không thì dùng parent_id
-    let currentId = category.parentId || category.parent_id;
-    let maxIterations = 10; // Ngăn chặn vòng lặp vô hạn nếu có lỗi dữ liệu
+    let currentId = category.parent_id;
+    let maxIterations = 10; // Ngăn chặn vòng lặp vô hạn
 
     while (currentId && maxIterations > 0) {
-      // Sử dụng biến tạm để tránh lỗi ESLint
-      const currentParentId = currentId;
+      const currentParentId = currentId; // Fix ESLint issue
       const parentCategory = allCategories.find(
         (c) => c.id === currentParentId
       );
       if (!parentCategory) break;
 
       level++;
-      currentId = parentCategory.parentId || parentCategory.parent_id;
+      currentId = parentCategory.parent_id;
       maxIterations--;
     }
 
     return level;
   }, []);
-
   // Định nghĩa fetchCategories với useCallback để tránh tạo hàm mới mỗi lần render
   const fetchCategories = useCallback(async () => {
     try {
       setLoading(true);
       const response = await adminService.getCategories();
 
-      // Truy cập đúng cấu trúc dữ liệu từ API (success: true, data: categories)
-      const categoriesData = response.data.data || [];
-      console.log('Raw API response:', categoriesData);
+      // API trả về mảng categories trực tiếp, không có wrapper
+      const categoriesData = Array.isArray(response.data) ? response.data : [];
 
-      // Chuyển đổi từ parent_id sang parentId
-      const transformedCategories = categoriesData.map((category) => {
-        // Đếm số sản phẩm nếu có
-        const productCount = category.Products ? category.Products.length : 0;
-
+      // Backend đã tính level rồi, chỉ cần thêm alias
+      const categoriesWithLevel = categoriesData.map((category) => {
+        // Sử dụng level từ backend, fallback về tính toán nếu không có
+        const level =
+          category.level || calculateCategoryLevel(category, categoriesData);
         return {
           ...category,
-          parentId: category.parent_id, // Chuyển đổi parent_id thành parentId để giữ tương thích với frontend
-          productCount, // Thêm số lượng sản phẩm
+          level,
+          parentId: category.parent_id, // Tạo alias để tương thích với frontend code cũ
+          productCount: 0, // Sẽ được tính sau khi có API đếm products
         };
       });
 
-      // Tính level sau khi đã chuyển đổi tất cả các danh mục
-      const categoriesWithLevel = transformedCategories.map((category) => {
-        return {
-          ...category,
-          level: calculateCategoryLevel(category, transformedCategories),
-        };
-      });
+      // Thống kê level
+      const levelStats = {
+        level1: categoriesWithLevel.filter((c) => c.level === 1).length,
+        level2: categoriesWithLevel.filter((c) => c.level === 2).length,
+        level3: categoriesWithLevel.filter((c) => c.level === 3).length,
+      };
 
       setCategories(categoriesWithLevel);
-      console.log('Categories with level:', categoriesWithLevel);
     } catch (error) {
-      console.error('Error fetching categories:', error);
       toast.error(
         `Không thể tải danh mục: ${
-          error.response?.data?.error || error.message
+          error.response?.data?.message || error.message
         }`
       );
     } finally {
@@ -95,14 +89,26 @@ const AdminCategoryManagement = () => {
         return;
       }
 
+      // Kiểm tra trùng tên trong cùng parent trước khi gửi request
+      const duplicateCheck = categories.find(
+        (cat) =>
+          cat.name.toLowerCase() === newCategory.name.toLowerCase() &&
+          ((cat.parent_id || cat.parentId) === newCategory.parentId ||
+            (!cat.parent_id && !cat.parentId && !newCategory.parentId))
+      );
+
+      if (duplicateCheck) {
+        toast.error('Đã tồn tại danh mục với tên này trong cùng danh mục cha!');
+        return;
+      }
+
       // Chuyển đổi từ parentId sang parent_id trước khi gửi lên API
       const categoryData = {
         name: newCategory.name,
         description: newCategory.description,
         parent_id: newCategory.parentId || null, // Chuyển đổi từ parentId sang parent_id
         image_url: newCategory.image_url || null, // Thêm image_url nếu có
-        // Không gửi level vì backend không có trường này, level sẽ được tính toán dựa trên parent_id
-        // Tự động tạo slug từ tên nếu cần
+        // Tự động tạo slug từ tên
         slug: newCategory.name
           .toLowerCase()
           .replace(/[^a-z0-9 -]/g, '')
@@ -110,7 +116,6 @@ const AdminCategoryManagement = () => {
           .replace(/-+/g, '-'),
       };
 
-      console.log('Sending category data:', categoryData);
       const response = await adminService.createCategory(categoryData);
 
       if (response.data) {
@@ -126,7 +131,6 @@ const AdminCategoryManagement = () => {
         setShowAddModal(false);
       }
     } catch (error) {
-      console.error('Error creating category:', error);
       toast.error(
         `Không thể thêm danh mục: ${
           error.response?.data?.error || error.message
@@ -158,6 +162,22 @@ const AdminCategoryManagement = () => {
         return;
       }
 
+      // Kiểm tra trùng tên trong cùng parent trước khi gửi request
+      const duplicateCheck = categories.find(
+        (cat) =>
+          cat.id !== editingCategory.id && // Exclude the current category being edited
+          cat.name.toLowerCase() === editingCategory.name.toLowerCase() &&
+          ((cat.parent_id || cat.parentId) === editingCategory.parentId ||
+            (!cat.parent_id && !cat.parentId && !editingCategory.parentId))
+      );
+
+      if (duplicateCheck) {
+        toast.error(
+          'Đã tồn tại danh mục khác với tên này trong cùng danh mục cha!'
+        );
+        return;
+      }
+
       // Chuyển đổi từ parentId sang parent_id trước khi gửi lên API
       const categoryData = {
         name: editingCategory.name,
@@ -175,7 +195,6 @@ const AdminCategoryManagement = () => {
             .replace(/-+/g, '-'),
       };
 
-      console.log('Updating category with data:', categoryData);
       await adminService.updateCategory(editingCategory.id, categoryData);
       toast.success('Cập nhật danh mục thành công!');
       fetchCategories(); // Refresh categories from server
@@ -255,12 +274,9 @@ const AdminCategoryManagement = () => {
     // Xây dựng cây
     const rootCategories = [];
     categoriesWithChildren.forEach((cat) => {
-      // Sử dụng cả parentId và parent_id để đảm bảo tính tương thích
-      const parentId = cat.parentId || cat.parent_id;
-
-      if (parentId) {
+      if (cat.parent_id) {
         // Nếu có parent, thêm vào children của parent
-        const parent = categoriesMap[parentId];
+        const parent = categoriesMap[cat.parent_id];
         if (parent) {
           parent.children.push(cat);
         } else {
@@ -350,11 +366,7 @@ const AdminCategoryManagement = () => {
                 Cấp 1 (Giới tính)
               </p>
               <p className='text-2xl font-semibold text-gray-900'>
-                {
-                  categories.filter(
-                    (c) => c.level === 1 || (!c.parentId && c.level !== 3)
-                  ).length
-                }
+                {categories.filter((c) => c.level === 1).length}
               </p>
             </div>
           </div>
@@ -370,11 +382,7 @@ const AdminCategoryManagement = () => {
                 Cấp 2 (Loại SP)
               </p>
               <p className='text-2xl font-semibold text-gray-900'>
-                {
-                  categories.filter(
-                    (c) => c.level === 2 || (c.parentId && c.level !== 3)
-                  ).length
-                }
+                {categories.filter((c) => c.level === 2).length}
               </p>
             </div>
           </div>
@@ -467,15 +475,26 @@ const AdminCategoryManagement = () => {
                     <div className='flex items-center'>
                       <div
                         style={{
-                          marginLeft: `${(category.displayLevel || 0) * 20}px`,
+                          marginLeft: `${(category.displayLevel || 0) * 24}px`,
                         }}
                       >
-                        {(category.displayLevel > 0 || category.parentId) && (
-                          <span className='text-gray-400 mr-2'>└─</span>
+                        {(category.displayLevel > 0 || category.parent_id) && (
+                          <span className='text-gray-400 mr-2'>
+                            {category.displayLevel === 1 ? '├─' : '└─'}
+                          </span>
                         )}
                         <span className='text-sm font-medium text-gray-900'>
                           {category.name}
                         </span>
+                        {/* Hiển thị parent name nếu có */}
+                        {category.parent_id && (
+                          <span className='text-xs text-gray-500 ml-2'>
+                            (con của:{' '}
+                            {categories.find((c) => c.id === category.parent_id)
+                              ?.name || 'N/A'}
+                            )
+                          </span>
+                        )}
                       </div>
                     </div>
                   </td>
@@ -618,10 +637,11 @@ const AdminCategoryManagement = () => {
                   className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                 >
                   <option value=''>Không có danh mục cha</option>
-                  {allCategories
+                  {categories
                     .filter((cat) => cat.level < newCategory.level)
                     .map((category) => (
                       <option key={category.id} value={category.id}>
+                        {'  '.repeat(category.level - 1)}
                         {category.name} ({getLevelText(category.level)})
                       </option>
                     ))}
@@ -753,7 +773,7 @@ const AdminCategoryManagement = () => {
                   className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                 >
                   <option value=''>Không có danh mục cha</option>
-                  {allCategories
+                  {categories
                     .filter(
                       (cat) =>
                         cat.id !== editingCategory.id &&
@@ -761,6 +781,7 @@ const AdminCategoryManagement = () => {
                     )
                     .map((category) => (
                       <option key={category.id} value={category.id}>
+                        {'  '.repeat(category.level - 1)}
                         {category.name} ({getLevelText(category.level)})
                       </option>
                     ))}

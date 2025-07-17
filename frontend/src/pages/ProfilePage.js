@@ -55,11 +55,24 @@ const ProfilePage = () => {
   const fetchOrders = async () => {
     setLoadingOrders(true);
     try {
+      console.log('🔍 [PROFILE] Fetching user orders...');
       const response = await orderService.getUserOrders();
+      console.log('📦 [PROFILE] Orders response:', response);
+      console.log('📋 [PROFILE] Orders data:', response.data);
+
+      if (response.data && response.data.length > 0) {
+        console.log(
+          '📅 [PROFILE] First order created_at:',
+          response.data[0].created_at
+        );
+        console.log('📅 [PROFILE] First order full data:', response.data[0]);
+      }
+
       setOrders(response.data || []);
     } catch (error) {
+      console.error('❌ [PROFILE] Error fetching orders:', error);
+      console.error('❌ [PROFILE] Error response:', error.response);
       toast.error('Không thể tải danh sách đơn hàng');
-      console.error('Error fetching orders:', error);
     } finally {
       setLoadingOrders(false);
     }
@@ -497,9 +510,11 @@ const ProfilePage = () => {
                           <div>
                             <p className='text-sm text-gray-500'>Ngày đặt</p>
                             <p className='font-medium'>
-                              {new Date(
-                                selectedOrder.created_at
-                              ).toLocaleDateString('vi-VN')}
+                              {selectedOrder.created_at
+                                ? new Date(
+                                    selectedOrder.created_at
+                                  ).toLocaleDateString('vi-VN')
+                                : 'N/A'}
                             </p>
                           </div>
                           <div>
@@ -641,9 +656,11 @@ const ProfilePage = () => {
                             <div className='mb-2 md:mb-0'>
                               <p className='text-sm text-gray-500'>Ngày đặt</p>
                               <p className='font-medium'>
-                                {new Date(order.created_at).toLocaleDateString(
-                                  'vi-VN'
-                                )}
+                                {order.created_at
+                                  ? new Date(
+                                      order.created_at
+                                    ).toLocaleDateString('vi-VN')
+                                  : 'N/A'}
                               </p>
                             </div>
                             <div className='mb-2 md:mb-0'>

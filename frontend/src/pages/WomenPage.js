@@ -1,8 +1,8 @@
 import React from 'react';
-import CategoryPage from '../components/CategoryPage';
+import EnhancedCategoryPage from '../components/EnhancedCategoryPage';
 
 const WomenPage = () => {
-  return <CategoryPage categoryType='nu' />;
+  return <EnhancedCategoryPage categoryType='nu' />;
 };
 
 export default WomenPage;

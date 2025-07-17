@@ -86,4 +86,23 @@ router.put(
 );
 router.delete('/users/:id', auth, requireAdmin, adminController.deleteUser);
 
+// Category Management
+router.get('/categories', auth, requireAdmin, adminController.getAllCategories);
+router.post('/categories', auth, requireAdmin, adminController.createCategory);
+router.put(
+  '/categories/:id',
+  auth,
+  requireAdmin,
+  adminController.updateCategory
+);
+router.delete(
+  '/categories/:id',
+  auth,
+  requireAdmin,
+  adminController.deleteCategory
+);
+
+// Test endpoint - không cần auth
+router.get('/test-categories', adminController.testGetCategories);
+
 module.exports = router;

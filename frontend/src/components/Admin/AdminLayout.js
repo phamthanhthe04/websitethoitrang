@@ -45,6 +45,11 @@ const AdminLayout = () => {
       label: 'Quản lý Danh mục',
     },
     {
+      path: '/admin/wallets',
+      icon: 'fas fa-wallet',
+      label: 'Quản lý Ví Tiền',
+    },
+    {
       path: '/admin/reports',
       icon: 'fas fa-chart-bar',
       label: 'Báo cáo & Thống kê',

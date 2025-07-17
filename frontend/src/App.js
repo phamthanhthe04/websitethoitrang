@@ -25,6 +25,7 @@ import KidsPage from './pages/KidsPage';
 import WishlistPage from './pages/WishlistPage';
 import ProfilePage from './pages/ProfilePage';
 import PromotionPage from './pages/PromotionPage';
+import WalletPage from './pages/WalletPage';
 
 // Admin pages
 import AdminLayout from './components/Admin/AdminLayout';
@@ -33,11 +34,14 @@ import AdminProductManagement from './pages/Admin/AdminProductManagement';
 import AdminOrderManagement from './pages/Admin/AdminOrderManagement';
 import AdminUserManagement from './pages/Admin/AdminUserManagement';
 import AdminCategoryManagement from './pages/Admin/AdminCategoryManagement';
+import AdminWalletManagement from './pages/Admin/AdminWalletManagement';
 
 // Auth utils
 import { getAuthData } from './utils/auth';
 import { setAuthData } from './features/auth/authSlice';
 import { fetchWishlist } from './features/wishlist/wishlistSlice';
+import ProtectedRoute from './components/ProtectedRoute';
+import CartPriceUpdater from './components/Cart/CartPriceUpdater';
 
 // Wrapper for authentication state
 function AuthInitializer({ children }) {
@@ -59,14 +63,23 @@ function App() {
     <Provider store={store}>
       <Router>
         <AuthInitializer>
+          <CartPriceUpdater />
           <Routes>
             {/* Admin Routes */}
-            <Route path='/admin' element={<AdminLayout />}>
+            <Route
+              path='/admin'
+              element={
+                <ProtectedRoute adminOnly={true}>
+                  <AdminLayout />
+                </ProtectedRoute>
+              }
+            >
               <Route index element={<AdminDashboard />} />
               <Route path='products' element={<AdminProductManagement />} />
               <Route path='orders' element={<AdminOrderManagement />} />
               <Route path='users' element={<AdminUserManagement />} />
               <Route path='categories' element={<AdminCategoryManagement />} />
+              <Route path='wallets' element={<AdminWalletManagement />} />
               <Route path='reports' element={<div>Báo cáo & Thống kê</div>} />
               <Route path='settings' element={<div>Cài đặt</div>} />
             </Route>
@@ -85,15 +98,44 @@ function App() {
                         element={<ProductDetailPage />}
                       />
                       <Route path='/gio-hang' element={<CartPage />} />
-                      <Route path='/thanh-toan' element={<CheckoutPage />} />
+                      <Route
+                        path='/thanh-toan'
+                        element={
+                          <ProtectedRoute>
+                            <CheckoutPage />
+                          </ProtectedRoute>
+                        }
+                      />
                       <Route path='/dang-nhap' element={<LoginPage />} />
                       <Route path='/dang-ky' element={<RegisterPage />} />
                       <Route path='/nam' element={<MenPage />} />
                       <Route path='/nu' element={<WomenPage />} />
                       <Route path='/tre-em' element={<KidsPage />} />
                       <Route path='/khuyen-mai' element={<PromotionPage />} />
-                      <Route path='/wishlist' element={<WishlistPage />} />
-                      <Route path='/profile' element={<ProfilePage />} />
+                      <Route
+                        path='/wishlist'
+                        element={
+                          <ProtectedRoute>
+                            <WishlistPage />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path='/profile'
+                        element={
+                          <ProtectedRoute>
+                            <ProfilePage />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path='/wallet'
+                        element={
+                          <ProtectedRoute>
+                            <WalletPage />
+                          </ProtectedRoute>
+                        }
+                      />
                       <Route
                         path='*'
                         element={<div>404 - Không tìm thấy trang</div>}

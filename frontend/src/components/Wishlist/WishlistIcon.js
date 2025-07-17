@@ -6,32 +6,32 @@ import {
   selectIsInWishlist,
 } from '../../features/wishlist/wishlistSlice';
 import { toast } from 'react-toastify';
+import useAuthAction from '../../hooks/useAuthAction';
 
 const WishlistIcon = ({ productId, size = 'medium' }) => {
   const dispatch = useDispatch();
-  const { isAuthenticated } = useSelector((state) => state.auth);
+  const { requireAuth } = useAuthAction();
   const isInWishlist = useSelector(selectIsInWishlist(productId));
 
   const handleToggleWishlist = async (e) => {
     e.preventDefault();
     e.stopPropagation();
 
-    if (!isAuthenticated) {
-      toast.error('Vui lòng đăng nhập để sử dụng tính năng yêu thích!');
-      return;
-    }
-
-    try {
-      if (isInWishlist) {
-        await dispatch(removeFromWishlist(productId)).unwrap();
-        toast.success('Đã xóa khỏi danh sách yêu thích!');
-      } else {
-        await dispatch(addToWishlist(productId)).unwrap();
-        toast.success('Đã thêm vào danh sách yêu thích!');
+    const executeWishlistAction = async () => {
+      try {
+        if (isInWishlist) {
+          await dispatch(removeFromWishlist(productId)).unwrap();
+          toast.success('Đã xóa khỏi danh sách yêu thích!');
+        } else {
+          await dispatch(addToWishlist(productId)).unwrap();
+          toast.success('Đã thêm vào danh sách yêu thích!');
+        }
+      } catch (error) {
+        toast.error(error || 'Có lỗi xảy ra!');
       }
-    } catch (error) {
-      toast.error(error || 'Có lỗi xảy ra!');
-    }
+    };
+
+    requireAuth(executeWishlistAction);
   };
 
   const sizeClasses = {

@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import {
   fetchWishlist,
@@ -11,17 +11,14 @@ import { getImageUrl } from '../utils/imageUtils';
 
 const WishlistPage = () => {
   const dispatch = useDispatch();
-  const navigate = useNavigate();
   const { items, loading, error } = useSelector((state) => state.wishlist);
   const { isAuthenticated } = useSelector((state) => state.auth);
 
   useEffect(() => {
     if (isAuthenticated) {
       dispatch(fetchWishlist());
-    } else {
-      navigate('/dang-nhap');
     }
-  }, [dispatch, isAuthenticated, navigate]);
+  }, [dispatch, isAuthenticated]);
 
   const handleRemoveFromWishlist = async (productId) => {
     try {
@@ -127,15 +124,11 @@ const WishlistPage = () => {
               <div key={item.id} className='group h-full'>
                 <div className='h-full bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 flex flex-col'>
                   {/* Discount Badge */}
-                  {product.sale_price && product.sale_price < product.price && (
+                  {product.sale_price && product.sale_price > 0 && (
                     <div className='absolute top-3 left-3 z-10'>
                       <span className='bg-red-500 text-white px-2 py-1 rounded-full text-xs font-bold shadow-md'>
                         -
-                        {Math.round(
-                          ((product.price - product.sale_price) /
-                            product.price) *
-                            100
-                        )}
+                        {Math.round((product.sale_price / product.price) * 100)}
                         %
                       </span>
                     </div>
@@ -188,20 +181,18 @@ const WishlistPage = () => {
 
                     {/* Price */}
                     <div className='mb-3 flex-grow'>
-                      {product.sale_price &&
-                      product.sale_price < product.price ? (
+                      {product.sale_price && product.sale_price > 0 ? (
                         <>
                           <div className='flex items-center space-x-2 mb-1'>
                             <span className='text-lg font-bold text-red-600'>
-                              {formatPrice(product.sale_price)}
+                              {formatPrice(product.price - product.sale_price)}
                             </span>
                             <span className='text-sm text-gray-500 line-through'>
                               {formatPrice(product.price)}
                             </span>
                           </div>
                           <div className='text-xs text-green-600 font-medium'>
-                            Tiết kiệm:{' '}
-                            {formatPrice(product.price - product.sale_price)}
+                            Tiết kiệm: {formatPrice(product.sale_price)}
                           </div>
                         </>
                       ) : (

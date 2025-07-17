@@ -16,7 +16,15 @@ const CartPage = () => {
   const dispatch = useDispatch();
 
   const handleQuantityChange = (item, newQuantity) => {
+    // Prevent negative quantities
     if (newQuantity < 1) return;
+
+    // Check stock limit if available
+    if (item.stock && newQuantity > item.stock) {
+      alert(`Chỉ còn ${item.stock} sản phẩm trong kho.`);
+      newQuantity = item.stock;
+    }
+
     dispatch(
       updateQuantity({
         id: item.id,

@@ -1,4 +1,4 @@
-const { User } = require('../models');
+const { User, Wallet, Transaction } = require('../models');
 const jwt = require('jsonwebtoken');
 
 // Generate JWT Token
@@ -29,6 +29,27 @@ const register = async (req, res) => {
       password,
       phone,
       address,
+    });
+
+    // Automatically create wallet for new user with initial balance
+    const initialBalance = 1000000; // 1M VND for new users
+
+    const wallet = await Wallet.create({
+      user_id: user.id,
+      balance: initialBalance,
+      status: 'active',
+    });
+
+    // Create initial transaction
+    await Transaction.create({
+      wallet_id: wallet.id,
+      type: 'deposit',
+      amount: initialBalance,
+      description: 'Tiền thưởng đăng ký tài khoản',
+      status: 'completed',
+      balance_before: 0,
+      balance_after: initialBalance,
+      created_by: user.id,
     });
 
     // Generate token

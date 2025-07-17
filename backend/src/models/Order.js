@@ -41,7 +41,9 @@ Order.init(
     modelName: 'Order',
     tableName: 'orders',
     timestamps: true,
-    underscored: true, // Sử dụng snake_case cho tên trường
+    underscored: true,
+    createdAt: 'created_at',
+    updatedAt: 'updated_at',
   }
 );
 

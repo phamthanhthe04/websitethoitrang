@@ -35,14 +35,11 @@ const PromotionPage = () => {
 
         // Lọc chỉ những sản phẩm có sale_price
         const promotionProducts = allProducts
-          .filter(
-            (product) =>
-              product.sale_price && product.sale_price < product.price
-          )
+          .filter((product) => product.sale_price && product.sale_price > 0)
           .map((product) => ({
             ...product,
             discountPercent: Math.round(
-              ((product.price - product.sale_price) / product.price) * 100
+              (product.sale_price / product.price) * 100
             ),
           }));
 
@@ -72,9 +69,17 @@ const PromotionPage = () => {
       case 'discount-asc':
         return sorted.sort((a, b) => a.discountPercent - b.discountPercent);
       case 'price-asc':
-        return sorted.sort((a, b) => a.sale_price - b.sale_price);
+        return sorted.sort((a, b) => {
+          const priceA = a.price - a.sale_price;
+          const priceB = b.price - b.sale_price;
+          return priceA - priceB;
+        });
       case 'price-desc':
-        return sorted.sort((a, b) => b.sale_price - a.sale_price);
+        return sorted.sort((a, b) => {
+          const priceA = a.price - a.sale_price;
+          const priceB = b.price - b.sale_price;
+          return priceB - priceA;
+        });
       case 'name':
         return sorted.sort((a, b) => a.name.localeCompare(b.name));
       default:
@@ -101,7 +106,7 @@ const PromotionPage = () => {
     const cartItem = {
       id: product.id,
       name: product.name,
-      price: product.sale_price, // Sử dụng giá khuyến mại
+      price: product.price - product.sale_price, // Sử dụng giá sau khi giảm
       image: getImageUrl(product.images?.[0]),
       quantity: 1,
       size,
@@ -117,7 +122,8 @@ const PromotionPage = () => {
           {product.name}
           <br />
           <small style={{ color: '#666' }}>
-            Giá khuyến mại: {Number(product.sale_price).toLocaleString('vi-VN')}{' '}
+            Giá khuyến mại:{' '}
+            {Number(product.price - product.sale_price).toLocaleString('vi-VN')}{' '}
             đ
           </small>
         </div>,
@@ -273,7 +279,9 @@ const PromotionPage = () => {
                       <div className='mb-3 flex-grow'>
                         <div className='flex items-center space-x-2 mb-1'>
                           <span className='text-lg font-bold text-red-600'>
-                            {Number(product.sale_price).toLocaleString('vi-VN')}{' '}
+                            {Number(
+                              product.price - product.sale_price
+                            ).toLocaleString('vi-VN')}{' '}
                             đ
                           </span>
                           <span className='text-sm text-gray-500 line-through'>
@@ -282,10 +290,7 @@ const PromotionPage = () => {
                         </div>
                         <div className='text-xs text-green-600 font-medium'>
                           Tiết kiệm:{' '}
-                          {Number(
-                            product.price - product.sale_price
-                          ).toLocaleString('vi-VN')}{' '}
-                          đ
+                          {Number(product.sale_price).toLocaleString('vi-VN')} đ
                         </div>
                       </div>
 

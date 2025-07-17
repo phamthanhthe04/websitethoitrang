@@ -60,11 +60,10 @@ const TrangChu = () => {
 
           // Lọc sản phẩm có giảm giá
           const onSaleProducts = products.filter((product) => {
-            const price = parseFloat(product.price || 0);
             const salePrice = parseFloat(
               product.sale_price || product.salePrice || 0
             );
-            return salePrice > 0 && salePrice < price;
+            return salePrice > 0;
           });
           setSaleProducts(onSaleProducts.slice(0, 8)); // Lấy 8 sản phẩm giảm giá
         }

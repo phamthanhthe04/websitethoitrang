@@ -53,8 +53,6 @@ const ProductDetailPage = () => {
     (hasSizes() && !selectedSize) || (hasColors() && !selectedColor);
 
   useEffect(() => {
-    console.log('ProductDetailPage - slug from params:', slug); // Debug log
-
     const fetchProduct = async () => {
       try {
         setLoading(true);
@@ -65,20 +63,15 @@ const ProductDetailPage = () => {
           return;
         }
 
-        console.log('Fetching product with slug:', slug); // Debug log
-
         // Try to fetch by slug first, then fallback to ID if needed
         let res;
         try {
           res = await getProductBySlug(slug);
         } catch (slugError) {
-          console.warn('Failed to fetch by slug, trying by ID:', slugError);
           // If slug fails, try treating it as an ID
           const { getProduct } = require('../services/productService');
           res = await getProduct(slug);
         }
-
-        console.log('Product response:', res); // Debug log
 
         const productData = res.data?.data || res.data;
         setProduct(productData);
@@ -123,7 +116,10 @@ const ProductDetailPage = () => {
     const cartItem = {
       id: product.id,
       name: product.name,
-      price: product.sale_price || product.price,
+      price:
+        product.sale_price && product.sale_price > 0
+          ? product.price - product.sale_price
+          : product.price,
       image: getImageUrl(product.images?.[0]),
       quantity: quantity,
       size: selectedSize,
@@ -165,10 +161,8 @@ const ProductDetailPage = () => {
   };
 
   const calculateDiscount = () => {
-    if (product?.sale_price && product?.price) {
-      return Math.round(
-        ((product.price - product.sale_price) / product.price) * 100
-      );
+    if (product?.sale_price && product?.sale_price > 0 && product?.price) {
+      return Math.round((product.sale_price / product.price) * 100);
     }
     return 0;
   };
@@ -208,8 +202,11 @@ const ProductDetailPage = () => {
 
   if (!product) return null;
 
-  const currentPrice = product.sale_price || product.price;
-  const hasDiscount = product.sale_price && product.price > product.sale_price;
+  const currentPrice =
+    product.sale_price && product.sale_price > 0
+      ? product.price - product.sale_price
+      : product.price;
+  const hasDiscount = product.sale_price && product.sale_price > 0;
   const discountPercent = calculateDiscount();
 
   return (
@@ -300,10 +297,7 @@ const ProductDetailPage = () => {
                 {hasDiscount && (
                   <div className='text-sm text-green-600 font-medium'>
                     Tiết kiệm:{' '}
-                    {Number(product.price - product.sale_price).toLocaleString(
-                      'vi-VN'
-                    )}{' '}
-                    đ
+                    {Number(product.sale_price).toLocaleString('vi-VN')} đ
                   </div>
                 )}
               </div>

@@ -5,51 +5,62 @@ import { addToCart } from '../../features/cart/cartSlice';
 import { toast } from 'react-toastify';
 import WishlistIcon from '../Wishlist/WishlistIcon';
 import { getImageUrl } from '../../utils/imageUtils';
+import useAuthAction from '../../hooks/useAuthAction';
 
 const ProductCard = ({ product }) => {
   const [isLoading, setIsLoading] = useState(false);
   const dispatch = useDispatch();
+  const { requireAuth } = useAuthAction();
 
   const handleAddToCart = async (e) => {
     e.preventDefault();
     e.stopPropagation();
 
-    setIsLoading(true);
+    const executeAddToCart = () => {
+      setIsLoading(true);
 
-    const cartItem = {
-      id: product.id,
-      name: product.name,
-      price: product.sale_price || product.price,
-      image: getImageUrl(product.images?.[0]),
-      quantity: 1,
+      const cartItem = {
+        id: product.id,
+        name: product.name,
+        price:
+          product.sale_price && product.sale_price > 0
+            ? product.price - product.sale_price
+            : product.price,
+        image: getImageUrl(product.images?.[0]),
+        quantity: 1,
+      };
+
+      try {
+        dispatch(addToCart(cartItem));
+        toast.success(
+          <div>
+            <strong>Đã thêm vào giỏ hàng!</strong>
+            <br />
+            {product.name}
+            <br />
+            <small style={{ color: '#666' }}>
+              {Number(
+                product.sale_price && product.sale_price > 0
+                  ? product.price - product.sale_price
+                  : product.price
+              ).toLocaleString('vi-VN')}{' '}
+              đ
+            </small>
+          </div>,
+          {
+            icon: '🛒',
+            position: 'top-right',
+            autoClose: 3000,
+          }
+        );
+      } catch (error) {
+        toast.error('Không thể thêm sản phẩm vào giỏ hàng!');
+      } finally {
+        setIsLoading(false);
+      }
     };
 
-    try {
-      dispatch(addToCart(cartItem));
-      toast.success(
-        <div>
-          <strong>Đã thêm vào giỏ hàng!</strong>
-          <br />
-          {product.name}
-          <br />
-          <small style={{ color: '#666' }}>
-            {Number(product.sale_price || product.price).toLocaleString(
-              'vi-VN'
-            )}{' '}
-            đ
-          </small>
-        </div>,
-        {
-          icon: '🛒',
-          position: 'top-right',
-          autoClose: 3000,
-        }
-      );
-    } catch (error) {
-      toast.error('Không thể thêm sản phẩm vào giỏ hàng!');
-    } finally {
-      setIsLoading(false);
-    }
+    requireAuth(executeAddToCart);
   };
 
   const formatPrice = (price) => {
@@ -57,8 +68,8 @@ const ProductCard = ({ product }) => {
   };
 
   const calculateDiscount = (originalPrice, salePrice) => {
-    if (!salePrice || salePrice >= originalPrice) return 0;
-    return Math.round(((originalPrice - salePrice) / originalPrice) * 100);
+    if (!salePrice || salePrice <= 0) return 0;
+    return Math.round((salePrice / originalPrice) * 100);
   };
 
   const productImage = getImageUrl(product.images?.[0]);
@@ -112,18 +123,18 @@ const ProductCard = ({ product }) => {
 
           {/* Price */}
           <div className='mb-3 flex-grow'>
-            {product.sale_price && product.sale_price < product.price ? (
+            {product.sale_price && product.sale_price > 0 ? (
               <>
                 <div className='flex items-center space-x-2 mb-1'>
                   <span className='text-lg font-bold text-red-600'>
-                    {formatPrice(product.sale_price)} đ
+                    {formatPrice(product.price - product.sale_price)} đ
                   </span>
                   <span className='text-sm text-gray-500 line-through'>
                     {formatPrice(product.price)} đ
                   </span>
                 </div>
                 <div className='text-xs text-green-600 font-medium'>
-                  Tiết kiệm: {formatPrice(product.price - product.sale_price)} đ
+                  Tiết kiệm: {formatPrice(product.sale_price)} đ
                 </div>
               </>
             ) : (
